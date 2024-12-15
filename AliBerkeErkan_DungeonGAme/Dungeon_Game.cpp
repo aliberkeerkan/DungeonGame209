@@ -10,25 +10,25 @@
 
 
 // Items
-Item knife = {"Knife", 20, 0};
-Item shield = {"Shield", 0, 10};
-Item cloak = {"Cloak", 40, 0};
-Item aidKit = {"Aid Kit", 0, 25};
+Item knife = {"Knife", 20, 5};
+Item shield = {"Shield", 5, 30};
+Item cloak = {"Cloak", 40, 10};
+Item aidKit = {"Aid Kit", 10, 50};
 Item trove = {"Trove", 0, 0};
-Item helmet = {"Helmet", 0, 20};
-Item armor = {"Armor", 0, 30};
-Item gun = {"Gun", 45, 0};
+Item helmet = {"Helmet", 15, 45};
+Item armor = {"Armor", 15, 60};
+Item gun = {"Gun", 45, 10};
 Item nothingI = {"NothingI", 0, 0};
 
 // Ostacles
-Obstacle skeletons = {"Skeletons", 60, 5};
-Obstacle vampire = {"Vampires", 70, 10};
-Obstacle wizard = {"Wizard", 100, 15};
-Obstacle ghost = {"Ghost", 120, 20};
-Obstacle morbivore = {"Morbivore", 200, 25};
-Obstacle golem = {"Golem", 70, 12};
+Obstacle skeletons = {"Skeletons", 30, 5};
+Obstacle vampire = {"Vampires", 35, 10};
+Obstacle wizard = {"Wizard", 50, 15};
+Obstacle ghost = {"Ghost", 55, 20};
+Obstacle morbivore = {"Morbivore", 80, 25};
+Obstacle golem = {"Golem", 65, 12};
 Obstacle archer = {"Archer", 60, 8};
-Obstacle giant = {"Giant", 150, 40};
+Obstacle giant = {"Giant", 70, 40};
 Obstacle nothingO = {"NothingO", 0, 0};
 
 
