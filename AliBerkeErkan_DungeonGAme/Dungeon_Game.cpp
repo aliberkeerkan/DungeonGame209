@@ -28,7 +28,7 @@ Obstacle ghost = {"Ghost", 55, 20};
 Obstacle morbivore = {"Morbivore", 80, 25};
 Obstacle golem = {"Golem", 65, 12};
 Obstacle archer = {"Archer", 60, 8};
-Obstacle giant = {"Giant", 70, 40};
+Obstacle giant = {"Giant", 70, 20};
 Obstacle nothingO = {"NothingO", 0, 0};
 
 
@@ -230,6 +230,9 @@ void loadGame(Player *p, Room **rooms) {
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
             fscanf(file, "%d\n", &rooms[i][j].o.health);
+            if (rooms[i][j].o.health <= 0) {
+            rooms[i][j].o.health = 0; 
+        	}
         }
     }
 
@@ -237,8 +240,9 @@ void loadGame(Player *p, Room **rooms) {
     printf("Game loaded successfully for %s!\n", p->name);
 }
 
-// Funcion to exit from the game
-void exitGame(Player *p, Room** rooms) {
+
+// Function to exit from the game
+void exitGame(Player *p, Room **rooms) {
     char choice;
     printf("Would you like to save your game before exiting? (y/n): ");
     scanf(" %c", &choice);
@@ -246,28 +250,39 @@ void exitGame(Player *p, Room** rooms) {
     if (choice == 'y' || choice == 'Y') {
         saveGame(p, rooms);
     }
-	
-	
-	// freeing the rooms array and inventoryCap
+
+    // Freeing the rooms array and inventoryCap
     free(p->inventoryCap);
     freeRooms(rooms);
     printf("Exiting the game. Goodbye!\n");
     exit(0);
 }
 
-
 // Function to print menu to interact with the player
 void printMenu(Player *p, Room **rooms) {
     int choice;
 
-    printf("------ MENU ------\n");
-    printf("1- Move\n");
-    printf("2- Attack\n");
-    printf("3- Look\n");
-    printf("4- Save the game\n");
-    printf("5- Exit\n");
+    while (1) {
+        printf("------ MENU ------\n");
+        printf("1- Move\n");
+        printf("2- Attack\n");
+        printf("3- Look\n");
+        printf("4- Save the game\n");
+        printf("5- Exit\n");
 
-    scanf("%d", &choice);
+        if (scanf("%d", &choice) != 1) {
+            
+            while (getchar() != '\n');
+            printf("Invalid choice. Please enter a number between 1 and 5.\n");
+            continue;
+        }
+
+        if (choice >= 1 && choice <= 5) {
+            break;  
+        } else {
+            printf("Invalid choice. Try again.\n");
+        }
+    }
 
     switch (choice) {
         case 1:
@@ -285,12 +300,8 @@ void printMenu(Player *p, Room **rooms) {
         case 5:
             exitGame(p, rooms);
             break;
-        default:
-            printf("Invalid choice. Try again.\n");
-            break;
     }
 }
-
 
 // Function to start the game
 void gameStart() {
@@ -299,7 +310,7 @@ void gameStart() {
     Room **rooms;
     allocateRooms(&rooms);
 
-    // filling room with the obstacles and the items
+    // Filling room with the obstacles and the items
     rooms[0][0] = (Room){1, skeletons, knife};
     rooms[0][1] = (Room){2, vampire, shield};
     rooms[0][2] = (Room){3, wizard, cloak};
@@ -310,7 +321,7 @@ void gameStart() {
     rooms[2][1] = (Room){8, archer, armor};
     rooms[2][2] = (Room){9, giant, gun};
 
-    printf("WELCOME TO THE DUNGEON GAME\n");
+    printf("----------WELCOME TO THE DUNGEON GAME----------\n");
     printf("Enter your name: ");
 
     char name[20];
@@ -318,6 +329,20 @@ void gameStart() {
 
     player1 = createPlayer(name);
     loadGame(&player1, rooms);
+
+    // Print room details to help player to find correct way to win the game
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            printf("Room number: %d, Obstacle: %s, Obstacle's Health: %d, Obstacle's Damage: %d\n",
+                   rooms[i][j].number, rooms[i][j].o.name, rooms[i][j].o.health, rooms[i][j].o.damage);
+            printf("Reward in the room: %s, Reward's Heal: %d, Reward's Damage: %d\n",
+                   rooms[i][j].reward.name, rooms[i][j].reward.heal, rooms[i][j].reward.damage);
+            printf("\n");
+        }
+        printf("\n");
+    }
+
+    printf("!!You have to find the correct path to win the game, good luck!!\n");
 
     while (1) {
         printMenu(&player1, rooms);
@@ -328,7 +353,6 @@ int main(int argc, char *argv[]) {
     gameStart();
     return 0;
 }
-
 
 
 
