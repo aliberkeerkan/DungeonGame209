@@ -16,5 +16,35 @@ This is a dungeon adventure game where players navigate through a grid of rooms,
 ## Compilation
 To compile the game, use the provided Makefile:
 ```sh
-make
+# Makefile for Dungeon Game
+
+# Compiler and flags
+CC = gcc
+CFLAGS = -Wall -Wextra -g
+
+# Target executable
+TARGET = dungeon_game
+
+# Source files
+SRCS = main.c game.c
+
+# Object files
+OBJS = $(SRCS:.c=.o)
+
+# Build target
+$(TARGET): $(OBJS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
+
+# Compile source files to object files
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Clean up build artifacts
+clean:
+	rm -f $(OBJS) $(TARGET)
+
+# Run the game
+run: $(TARGET)
+	./$(TARGET)
+
 
