@@ -1,13 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dirent.h>
 #include "game.h"
 
 #define DEFAULT_HEALTH 100
 #define DEFAULT_STRENGTH 10
 #define DEFAULT_ROOM 5
-
-
 
 // Items
 Item knife = {"Knife", 20, 5};
@@ -20,7 +19,7 @@ Item armor = {"Armor", 15, 60};
 Item gun = {"Gun", 45, 10};
 Item nothingI = {"NothingI", 0, 0};
 
-// Ostacles
+// Obstacles
 Obstacle skeletons = {"Skeletons", 30, 5};
 Obstacle vampire = {"Vampires", 35, 10};
 Obstacle wizard = {"Wizard", 50, 15};
@@ -33,8 +32,6 @@ Obstacle nothingO = {"NothingO", 0, 0};
 
 
 
-
-// Function to allocate memory for rooms array
 void allocateRooms(Room ***rooms) {
     *rooms = (Room **)malloc(3 * sizeof(Room *));
     for (int i = 0; i < 3; i++) {
@@ -42,8 +39,6 @@ void allocateRooms(Room ***rooms) {
     }
 }
 
-
-// Function to free rooms
 void freeRooms(Room **rooms) {
     for (int i = 0; i < 3; i++) {
         free(rooms[i]);
@@ -51,8 +46,34 @@ void freeRooms(Room **rooms) {
     free(rooms);
 }
 
+void listSavedGames() {
+    struct dirent *entry;
+    DIR *dp = opendir(".");
 
-// Function to give ability to player to move between rooms
+    if (dp == NULL) {
+        printf("Could not open the directory to list saved games.\n");
+        return;
+    }
+
+    printf("Saved games:\n");
+    while ((entry = readdir(dp))) {
+        if (strstr(entry->d_name, "_savegame.txt")) {
+            printf("- %s\n", entry->d_name);
+        }
+    }
+
+    closedir(dp);
+}
+
+void inventory(Player *p) {
+    printf("Your inventory:\n");
+    for (int i = 0; i < 9; i++) {
+        if (p->inventoryCap[i].name[0] != '\0') {
+            printf("- %s (Damage: %d, Heal: %d)\n", p->inventoryCap[i].name, p->inventoryCap[i].damage, p->inventoryCap[i].heal);
+        }
+    }
+}
+
 void move(Player *p, Room **rooms) {
     int newRoomNo;
 
@@ -90,8 +111,6 @@ void move(Player *p, Room **rooms) {
     }
 }
 
-
-// Function to ability to player to look inside the rooms
 void look(Player *p, Room **rooms) {
     int newRoomNo;
     printf("Enter the number of the room you want to look: \n");
@@ -108,8 +127,6 @@ void look(Player *p, Room **rooms) {
     printf("Obstacle: %s, Reward: %s\n", rooms[row][col].o.name, rooms[row][col].reward.name);
 }
 
-
-// Function for the picking up the items
 void pickUp(Player *p, Room **rooms) {
     int row = (p->room - 1) / 3;
     int col = (p->room - 1) % 3;
@@ -121,8 +138,6 @@ void pickUp(Player *p, Room **rooms) {
     printf("Item picked up: %s\n", rooms[row][col].reward.name);
 }
 
-
-// Funcion to atack to the obstacles which are in the rooms
 void attack(Player *p, Room **rooms) {
     int row = (p->room - 1) / 3;
     int col = (p->room - 1) % 3;
@@ -162,8 +177,6 @@ void attack(Player *p, Room **rooms) {
     }
 }
 
-
-// Function to creaate player
 Player createPlayer(char name[]) {
     Player p;
     strcpy(p.name, name);
@@ -177,8 +190,6 @@ Player createPlayer(char name[]) {
     return p;
 }
 
-
-// Function to save the game
 void saveGame(Player *p, Room **rooms) {
     char filename[50];
     sprintf(filename, "%s_savegame.txt", p->name);
@@ -193,8 +204,8 @@ void saveGame(Player *p, Room **rooms) {
     fprintf(file, "%s\n%d\n%d\n%d\n", p->name, p->health, p->strength, p->room);
     
     for (int i = 0; i < 9; i++) { 
-		fprintf(file, "%s\n%d\n%d\n", p->inventoryCap[i].name, p->inventoryCap[i].damage, p->inventoryCap[i].heal); 
-	}
+        fprintf(file, "%s\n%d\n%d\n", p->inventoryCap[i].name, p->inventoryCap[i].damage, p->inventoryCap[i].heal); 
+    }
 
     // save the room datas
     for (int i = 0; i < 3; i++) {
@@ -207,8 +218,6 @@ void saveGame(Player *p, Room **rooms) {
     printf("Game saved successfully!\n");
 }
 
-
-// Function to load the game
 void loadGame(Player *p, Room **rooms) {
     char filename[50];
     sprintf(filename, "%s_savegame.txt", p->name);
@@ -223,16 +232,16 @@ void loadGame(Player *p, Room **rooms) {
     fscanf(file, "%s\n%d\n%d\n%d\n", p->name, &p->health, &p->strength, &p->room);
     
     for (int i = 0; i < 9; i++) { 
-		fscanf(file, "%s\n%d\n%d\n", p->inventoryCap[i].name, &p->inventoryCap[i].damage, &p->inventoryCap[i].heal); 
-	}
+        fscanf(file, "%s\n%d\n%d\n", p->inventoryCap[i].name, &p->inventoryCap[i].damage, &p->inventoryCap[i].heal); 
+    }
 
-    // load the room datas
+        // load the room datas
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
             fscanf(file, "%d\n", &rooms[i][j].o.health);
             if (rooms[i][j].o.health <= 0) {
-            rooms[i][j].o.health = 0; 
-        	}
+                rooms[i][j].o.health = 0; 
+            }
         }
     }
 
@@ -240,8 +249,6 @@ void loadGame(Player *p, Room **rooms) {
     printf("Game loaded successfully for %s!\n", p->name);
 }
 
-
-// Function to exit from the game
 void exitGame(Player *p, Room **rooms) {
     char choice;
     printf("Would you like to save your game before exiting? (y/n): ");
@@ -258,7 +265,6 @@ void exitGame(Player *p, Room **rooms) {
     exit(0);
 }
 
-// Function to print menu to interact with the player
 void printMenu(Player *p, Room **rooms) {
     int choice;
 
@@ -303,10 +309,8 @@ void printMenu(Player *p, Room **rooms) {
     }
 }
 
-// Function to start the game
 void gameStart() {
     Player player1;
-
     Room **rooms;
     allocateRooms(&rooms);
 
@@ -322,14 +326,28 @@ void gameStart() {
     rooms[2][2] = (Room){9, giant, gun};
 
     printf("----------WELCOME TO THE DUNGEON GAME----------\n");
-    printf("Enter your name: ");
 
-    char name[20];
-    scanf("%s", name);
+    printf("Would you like to load your saved game? (y/n): ");
+    char choice;
+    scanf(" %c", &choice);
+    getchar();  // Clear newline
 
-    player1 = createPlayer(name);
-    loadGame(&player1, rooms);
-
+    if (choice == 'y' || choice == 'Y') {
+        printf("Enter your name: ");
+        char name[20];
+        scanf("%s", name);
+        getchar();
+        player1 = createPlayer(name);
+        loadGame(&player1, rooms);
+    } else {
+        printf("Enter your name: ");
+        char name[20];
+        scanf("%s", name);
+        getchar();
+        player1 = createPlayer(name);
+        printf("Starting a new game for %s.\n", name);
+    }
+    
     // Print room details to help player to find correct way to win the game
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
@@ -353,6 +371,3 @@ int main(int argc, char *argv[]) {
     gameStart();
     return 0;
 }
-
-
-
