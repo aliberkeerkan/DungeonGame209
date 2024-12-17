@@ -46,24 +46,7 @@ void freeRooms(Room **rooms) {
     free(rooms);
 }
 
-void listSavedGames() {
-    struct dirent *entry;
-    DIR *dp = opendir(".");
 
-    if (dp == NULL) {
-        printf("Could not open the directory to list saved games.\n");
-        return;
-    }
-
-    printf("Saved games:\n");
-    while ((entry = readdir(dp))) {
-        if (strstr(entry->d_name, "_savegame.txt")) {
-            printf("- %s\n", entry->d_name);
-        }
-    }
-
-    closedir(dp);
-}
 
 void inventory(Player *p) {
     printf("Your inventory:\n");
@@ -142,40 +125,57 @@ void attack(Player *p, Room **rooms) {
     int row = (p->room - 1) / 3;
     int col = (p->room - 1) % 3;
 
-    if (rooms[row][col].o.health > 0) {
-        char choice;
-        do {
-            printf("Press (h) to hit or (e) to escape:\n");
-            scanf(" %c", &choice);
-            while (choice != 'h' && choice != 'e') {
-                printf("Invalid choice! Press (h) to hit or (e) to escape:\n");
-                scanf(" %c", &choice);
-            }
-
-            if (choice == 'h') {
-                p->health -= rooms[row][col].o.damage;
-                rooms[row][col].o.health -= p->strength;
-
-                printf("You attacked! Your health: %d, Enemy health: %d\n", p->health, rooms[row][col].o.health);
-            }
-        } while (choice == 'h' && p->health > 0 && rooms[row][col].o.health > 0);
-
-        if (choice == 'e') {
-            printf("You escaped!\n");
-            return;
-        }
-    } else {
+    // Ölen düşman kontrolü
+    if (rooms[row][col].o.health <= 0) {
         printf("There is no obstacle in this room.\n");
+        return;
+    }else{
+	
+
+    // Savaş döngüsü
+    char choice;
+    do {
+        printf("Press (h) to hit or (e) to escape:\n");
+        scanf(" %c", &choice);
+
+        while (choice != 'h' && choice != 'e') {
+            printf("Invalid choice! Press (h) to hit or (e) to escape:\n");
+            scanf(" %c", &choice);
+        }
+
+        if (choice == 'h') {
+            // Oyuncu ve düşmanın sağlık güncellemeleri
+            p->health -= rooms[row][col].o.damage;
+            rooms[row][col].o.health -= p->strength;
+
+            printf("You attacked! Your health: %d, Enemy health: %d\n", p->health, rooms[row][col].o.health);
+
+            // Oyuncu öldü mü kontrolü
+            if (p->health <= 0) {
+                printf("You are defeated!\n");
+                exitGame(p, rooms); // Oyuncu yenildiyse çıkış
+                return;
+            }
+        }
+    } while (choice == 'h' && p->health > 0 && rooms[row][col].o.health > 0);
+
+    if (choice == 'e') {
+        printf("You escaped!\n");
+        return;
     }
 
-    if (p->health <= 0) {
-        printf("You are defeated!\n");
-        exitGame(p, rooms);
-    } else if (rooms[row][col].o.health <= 0) {
+    // Eğer düşman öldüyse
+    if (rooms[row][col].o.health <= 0) {
         printf("Enemy defeated! Now you can move to the next room.\n");
-        pickUp(p, rooms);
+        
+        pickUp(p, rooms);  // Ödülü al
     }
+    
 }
+}
+
+
+
 
 Player createPlayer(char name[]) {
     Player p;
@@ -200,22 +200,40 @@ void saveGame(Player *p, Room **rooms) {
         return;
     }
 
-    // save the player datas
+    // Oyuncu bilgilerini kaydet
     fprintf(file, "%s\n%d\n%d\n%d\n", p->name, p->health, p->strength, p->room);
-    
-    for (int i = 0; i < 9; i++) { 
-        fprintf(file, "%s\n%d\n%d\n", p->inventoryCap[i].name, p->inventoryCap[i].damage, p->inventoryCap[i].heal); 
+
+    // Oyuncunun envanterini kaydet
+    for (int i = 0; i < 9; i++) {
+        if (p->inventoryCap[i].name[0] == '\0') {
+            fprintf(file, "Empty 0 0\n"); // Boş slotları işaretle
+        } else {
+            fprintf(file, "%s %d %d\n", p->inventoryCap[i].name, p->inventoryCap[i].damage, p->inventoryCap[i].heal);
+        }
     }
 
-    // save the room datas
+    // Oda bilgilerini kaydet
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
-            fprintf(file, "%d\n", rooms[i][j].o.health);
+            fprintf(file, "%d %s %d %d\n", rooms[i][j].number, rooms[i][j].o.name, rooms[i][j].o.health, rooms[i][j].o.damage);
         }
     }
 
     fclose(file);
     printf("Game saved successfully!\n");
+}
+
+
+Obstacle getObstacleByName(const char *name) {
+    if (strcmp(name, "Skeletons") == 0) return skeletons;
+    if (strcmp(name, "Vampires") == 0) return vampire;
+    if (strcmp(name, "Wizard") == 0) return wizard;
+    if (strcmp(name, "Ghost") == 0) return ghost;
+    if (strcmp(name, "Morbivore") == 0) return morbivore;
+    if (strcmp(name, "Golem") == 0) return golem;
+    if (strcmp(name, "Archer") == 0) return archer;
+    if (strcmp(name, "Giant") == 0) return giant;
+    return nothingO; // Tanınmayan bir engel varsa nothingO olarak geri döner
 }
 
 void loadGame(Player *p, Room **rooms) {
@@ -228,19 +246,39 @@ void loadGame(Player *p, Room **rooms) {
         return;
     }
 
-    // load the player datas
+    // Oyuncu bilgilerini yükle
     fscanf(file, "%s\n%d\n%d\n%d\n", p->name, &p->health, &p->strength, &p->room);
-    
-    for (int i = 0; i < 9; i++) { 
-        fscanf(file, "%s\n%d\n%d\n", p->inventoryCap[i].name, &p->inventoryCap[i].damage, &p->inventoryCap[i].heal); 
+
+    // Oyuncunun envanterini yükle
+    for (int i = 0; i < 9; i++) {
+        char itemName[50];
+        int damage, heal;
+        fscanf(file, "%49s %d %d\n", itemName, &damage, &heal);
+        if (strcmp(itemName, "Empty") == 0) {
+            p->inventoryCap[i].name[0] = '\0'; // Boş slot
+        } else {
+            strcpy(p->inventoryCap[i].name, itemName);
+            p->inventoryCap[i].damage = damage;
+            p->inventoryCap[i].heal = heal;
+        }
     }
 
-        // load the room datas
+    // Odalardaki engelleri yükle
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
-            fscanf(file, "%d\n", &rooms[i][j].o.health);
-            if (rooms[i][j].o.health <= 0) {
-                rooms[i][j].o.health = 0; 
+            int roomNumber, obstacleHealth, obstacleDamage;
+            char obstacleName[50];
+
+            fscanf(file, "%d %49s %d %d\n", &roomNumber, obstacleName, &obstacleHealth, &obstacleDamage);
+            rooms[i][j].number = roomNumber;
+            rooms[i][j].o = getObstacleByName(obstacleName);
+
+            if (obstacleHealth <= 0) {
+                rooms[i][j].o.health = 0;  // Sağlık sıfır olanlar etkisiz
+                rooms[i][j].o.damage = 0;
+            } else {
+                rooms[i][j].o.health = obstacleHealth;
+                rooms[i][j].o.damage = obstacleDamage;
             }
         }
     }
@@ -249,15 +287,16 @@ void loadGame(Player *p, Room **rooms) {
     printf("Game loaded successfully for %s!\n", p->name);
 }
 
+
+
+
+
+
+
+
+
 void exitGame(Player *p, Room **rooms) {
-    char choice;
-    printf("Would you like to save your game before exiting? (y/n): ");
-    scanf(" %c", &choice);
-
-    if (choice == 'y' || choice == 'Y') {
-        saveGame(p, rooms);
-    }
-
+    
     // Freeing the rooms array and inventoryCap
     free(p->inventoryCap);
     freeRooms(rooms);
@@ -309,6 +348,7 @@ void printMenu(Player *p, Room **rooms) {
     }
 }
 
+
 void gameStart() {
     Player player1;
     Room **rooms;
@@ -348,17 +388,7 @@ void gameStart() {
         printf("Starting a new game for %s.\n", name);
     }
     
-    // Print room details to help player to find correct way to win the game
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            printf("Room number: %d, Obstacle: %s, Obstacle's Health: %d, Obstacle's Damage: %d\n",
-                   rooms[i][j].number, rooms[i][j].o.name, rooms[i][j].o.health, rooms[i][j].o.damage);
-            printf("Reward in the room: %s, Reward's Heal: %d, Reward's Damage: %d\n",
-                   rooms[i][j].reward.name, rooms[i][j].reward.heal, rooms[i][j].reward.damage);
-            printf("\n");
-        }
-        printf("\n");
-    }
+    
 
     printf("!!You have to find the correct path to win the game, good luck!!\n");
 
@@ -367,7 +397,11 @@ void gameStart() {
     }
 }
 
+
 int main(int argc, char *argv[]) {
     gameStart();
     return 0;
 }
+
+
+    
